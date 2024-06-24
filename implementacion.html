@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KD Tree en 2D (Paso a Paso)</title>
+<style>
+    #canvas {
+        width: 500px;
+        height: 500px;
+        border: 1px solid black;
+    }
+</style>
+</head>
+<body>
+<h1>KD Tree en 2D (Paso a Paso)</h1>
+<div>
+    <label for="x">Coordenada X:</label>
+    <input type="number" id="x" min="0">
+    <label for="y">Coordenada Y:</label>
+    <input type="number" id="y" min="0">
+    <button onclick="addPoint()">Agregar Punto</button>
+</div>
+<canvas id="canvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let points = [];
+    let kdTree = null;
+
+    // Clase para representar un punto
+    class Point {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    // Clase para representar un nodo del árbol KD
+    class KDNode {
+        constructor(point, axis, left, right) {
+            this.point = point;
+            this.axis = axis; // 0 para X, 1 para Y
+            this.left = left;
+            this.right = right;
+        }
+    }
+
+    // Función para construir un árbol KD a partir de una lista de puntos
+    function buildKDTree(points, depth = 0) {
+        if (points.length === 0) {
+            return null;
+        }
+
+        const axis = depth % 2; // Alternar entre X y Y
+
+        // Ordenar puntos según el eje actual
+        points.sort((a, b) => (axis === 0 ? a.x - b.x : a.y - b.y));
+
+        const medianIndex = Math.floor(points.length / 2);
+        const median = points[medianIndex];
+
+        const leftPoints = points.slice(0, medianIndex);
+        const rightPoints = points.slice(medianIndex + 1);
+
+        return new KDNode(
+            median,
+            axis,
+            buildKDTree(leftPoints, depth + 1),
+            buildKDTree(rightPoints, depth + 1)
+        );
+    }
+
+    // Función para dibujar un árbol KD
+    function drawKDTree(node, minX, maxX, minY, maxY) {
+        if (!node) {
+            return;
+        }
+
+        // Dibujar la división vertical u horizontal según el eje del nodo
+        if (node.axis === 0) { // Eje X
+            ctx.beginPath();
+            ctx.moveTo(node.point.x, minY);
+            ctx.lineTo(node.point.x, maxY);
+            ctx.strokeStyle = 'red';
+            ctx.stroke();
+            ctx.closePath();
+
+            drawKDTree(node.left, minX, node.point.x, minY, maxY);
+            drawKDTree(node.right, node.point.x, maxX, minY, maxY);
+        } else { // Eje Y
+            ctx.beginPath();
+            ctx.moveTo(minX, node.point.y);
+            ctx.lineTo(maxX, node.point.y);
+            ctx.strokeStyle = 'blue';
+            ctx.stroke();
+            ctx.closePath();
+
+            drawKDTree(node.left, minX, maxX, minY, node.point.y);
+            drawKDTree(node.right, minX, maxX, node.point.y, maxY);
+        }
+    }
+
+    // Función para dibujar los puntos
+    function drawPoints(points) {
+        points.forEach(point => {
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = 'black';
+            ctx.fill();
+            ctx.closePath();
+        });
+    }
+
+    // Función para agregar un punto con las coordenadas ingresadas
+    function addPoint() {
+        const xInput = document.getElementById('x');
+        const yInput = document.getElementById('y');
+        const x = parseInt(xInput.value);
+        const y = parseInt(yInput.value);
+
+        if (!isNaN(x) && !isNaN(y)) {
+            const point = new Point(x, y);
+            points.push(point);
+            xInput.value = '';
+            yInput.value = '';
+
+            kdTree = buildKDTree(points);
+            draw();
+        } else {
+            alert('Por favor ingresa coordenadas válidas.');
+        }
+    }
+
+    // Función principal para dibujar
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (kdTree) {
+            drawKDTree(kdTree, 0, canvas.width, 0, canvas.height);
+        }
+        drawPoints(points);
+    }
+
+    // Dibujar al cargar la página
+    draw();
+</script>
+</body>
+</html>
